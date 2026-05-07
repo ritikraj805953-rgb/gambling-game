@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 PREMIUM GAMING HUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen text-white overflow-x-hidden">
+    
+    <!-- Header -->
+    <header class="p-8 text-center backdrop-blur-xl bg-white/10 sticky top-0 z-50">
+        <h1 class="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            🎰 GAMING EMPIRE
+        </h1>
+        <div id="balance" class="text-2xl md:text-3xl font-bold mb-2">Balance: ₹10,000</div>
+        <div id="gamesPlayed" class="text-lg opacity-80">Games: 0</div>
+    </header>
+
+    <!-- Games Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 max-w-7xl mx-auto">
+        
+        <!-- 🔥 SPIN WHEEL -->
+        <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 hover:bg-white/20 transition-all group">
+            <h2 class="text-3xl font-bold mb-6 text-center">🎡 SPIN ROULETTE</h2>
+            <div class="w-40 h-40 md:w-48 md:h-48 bg-gradient-to-r from-red-500 via-yellow-400 to-green-500 rounded-full mx-auto mb-8 flex items-center justify-center text-2xl font-black shadow-2xl group-hover:rotate-12 transition-transform duration-500">
+                SPIN
+            </div>
+            <div class="space-y-3">
+                <input id="spinBet" type="number" value="100" min="10" max="5000" 
+                       class="w-full p-4 rounded-2xl bg-white/20 text-xl text-center font-bold border-2 border-white/30 focus:border-yellow-400 focus:outline-none">
+                <button onclick="spinWheel()" 
+                        class="w-full py-5 px-8 bg-gradient-to-r from-green-500 to-emerald-600 text-xl font-black rounded-2xl hover:from-green-600 hover:to-emerald-700 shadow-xl transform hover:scale-105 transition-all duration-300">
+                    💰 SPIN NOW
+                </button>
+            </div>
+            <div id="spinResult" class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 text-center font-bold hidden"></div>
+        </div>
+
+        <!-- ⛏️ MINING -->
+        <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 hover:bg-white/20 transition-all">
+            <h2 class="text-3xl font-bold mb-6 text-center">⛏️ CRYPTO MINING</h2>
+            <div class="text-center">
+                <div id="miningPower" class="text-5xl font-black text-green-400 mb-4 animate-pulse">0 MH/s</div>
+                <div id="miningReward" class="text-xl mb-6">Daily: ₹0</div>
+                <button onclick="claimMining()" 
+                        class="w-full py-4 px-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-xl font-bold rounded-2xl hover:from-yellow-600 hover:to-orange-600 shadow-xl transform hover:scale-105 transition-all">
+                    ⚡ CLAIM REWARD
+                </button>
+            </div>
+            <div class="mt-6 p-3 bg-green-500/20 rounded-xl text-sm">
+                Auto-mining active...
+            </div>
+        </div>
+
+        <!-- 📡 ROUTER CRASH -->
+        <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 hover:bg-white/20 transition-all lg:col-span-2">
+            <h2 class="text-3xl font-bold mb-6 text-center">📡 ROUTER CRASH</h2>
+            <div class="text-center">
+                <div id="crashMultiplier" class="text-6xl font-black text-blue-400 mb-8 animate-pulse">1.00x</div>
+                <div class="flex gap-4 justify-center items-center flex-wrap">
+                    <input id="crashBet" type="number" value="200" min="10" max="10000" 
+                           class="w-32 p-3 rounded-xl bg-white/20 text-lg text-center font-bold border-2 border-blue-400">
+                    <button onclick="startCrash()" 
+                            class="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-xl font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 shadow-xl">
+                        🚀 BET
+                    </button>
+                    <button onclick="cashOut()" 
+                            class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-xl font-bold rounded-xl hover:from-green-600 hover:to-emerald-600 shadow-xl hidden" id="cashoutBtn">
+                        💰 CASH OUT
+                    </button>
+                </div>
+            </div>
+            <div id="crashStatus" class="mt-6 p-4 rounded-2xl bg-red-500/30 text-center font-bold hidden"></div>
+        </div>
+
+    </div>
+
+    <!-- Particles Background -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="w-2 h-2 bg-yellow-400 rounded-full absolute top-20 left-20 animate-bounce"></div>
+        <div class="w-3 h-3 bg-blue-400 rounded-full absolute top-40 right-32 animate-ping delay-1000"></div>
+        <div class="w-1 h-1 bg-green-400 rounded-full absolute bottom-32 left-1/2 animate-pulse delay-2000"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let miningInterval, crashInterval;
+        let currentCrash = 1.00;
+
+        // Update Balance
+        async function updateBalance() {
+            try {
+                const res = await fetch('/api/balance');
+                const data = await res.json();
+                document.getElementById('balance').textContent = `Balance: ₹${data.balance.toLocaleString()}`;
+            } catch(e) {}
+        }
+
+        // SPIN WHEEL
+        async function spinWheel() {
+            const bet = parseInt(document.getElementById('spinBet').value);
+            const res = await fetch('/api/spin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({bet})
+            });
+            const data = await res.json();
+            
+            const resultEl = document.getElementById('spinResult');
+            resultEl.className = data.win ? 'mt-6 p-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-center font-bold' : 
+                                      'mt-6 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-center font-bold';
+            resultEl.innerHTML = data.win ? 
+                `🎉 WINNER! ${data.multiplier}<br>Profit: +₹${data.profit.toLocaleString()}` :
+                `💔 Lost ₹${bet.toLocaleString()}<br>Number: ${data.result}`;
+            resultEl.classList.remove('hidden');
+            
+            updateBalance();
+            setTimeout(() => resultEl.classList.add('hidden'), 5000);
+        }
+
+        // MINING
+        function startMining() {
+            let power = 0;
+            miningInterval = setInterval(() => {
+                power += Math.random() * 15 + 5;
+                document.getElementById('miningPower').textContent = `${power.toFixed(1)} MH/s`;
+                document.getElementById('miningReward').textContent = `Daily: ₹${Math.floor(power/10)}`;
+                socket.emit('mining-update', power);
+            }, 1000);
+        }
+
+        async function claimMining() {
+            const res = await fetch('/api/mine', {method: 'POST'});
+            const data = await res.json();
+            alert(`⚡ Mined ₹${data.reward}! New Balance: ₹${data.balance.toLocaleString()}`);
+            updateBalance();
+        }
+
+        // CRASH GAME
+        function startCrash() {
+            const bet = parseInt(document.getElementById('crashBet').value);
+            currentCrash = 1.00;
+            document.getElementById('cashoutBtn').classList.remove('hidden');
+            
+            crashInterval = setInterval(() => {
+                currentCrash += 0.01;
+                document.getElementById('crashMultiplier').textContent = `${currentCrash.toFixed(2)}x`;
+                
+                if (Math.random() < 0.02) { // 2% crash chance
+                    clearInterval(crashInterval);
+                    document.getElementById('crashStatus').innerHTML = '💥 CRASHED!';
+                    document.getElementById('crashStatus').classList.remove('hidden');
+                    document.getElementById('cashoutBtn').classList.add('hidden');
+                }
+            }, 100);
+        }
+
+        function cashOut() {
+            clearInterval(crashInterval);
+            const bet = parseInt(document.getElementById('crashBet').value);
+            const win = bet * currentCrash;
+            alert(`💰 Cashed out at ${currentCrash.toFixed(2)}x!\nWin: ₹${win.toLocaleString()}`);
+            updateBalance();
+            document.getElementById('cashoutBtn').classList.add('hidden');
+        }
+
+        // Auto-start
+        window.onload = () => {
+            updateBalance();
+            startMining();
+            setInterval(updateBalance, 5000);
+        };
+    </script>
+</body>
+</html>
